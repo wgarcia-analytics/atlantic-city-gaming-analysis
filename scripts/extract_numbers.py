@@ -1,3 +1,5 @@
+import pdfplumber
+
 def first_number(text):
     pieces = text.replace("$", " ").split()
     number = pieces[0]
@@ -6,7 +8,32 @@ def first_number(text):
     return int(number.replace(",", ""))
 
 
-print(first_number("294,904,367 311,912,857 (17,008,490) (5.5)"))
-print(first_number("7 2,545,070 7 7,583,668 ( 5,038,598) (6.5)"))
-print(first_number("$ 1 23,662,620 $ 122,906,035 $ 756,585 0.6"))
-print(first_number("2 ,129,453,651 1 ,881,623,639"))
+def get_value(lines, label):
+    for line in lines:
+        if line.startswith(label):
+            rest = line.replace(label, "")
+            return first_number(rest)
+    return None
+    
+filename = "data/raw/2017-01.pdf"
+
+with pdfplumber.open(filename) as pdf:
+    text = pdf.pages[1]. extract_text() or ""
+    lines = text.split("\n")
+
+slots = get_value(lines, "Slot Machine Win")
+tables = get_value(lines, "Table Game Win")
+casino = get_value(lines, "Casino Win")
+internet = get_value(lines, "Internet Gaming Win")
+sports = get_value(lines, "Sports Wagering Revenue")
+
+print("Slots:", slots)
+print("Tables:", tables)
+print("Casino Win:", casino)
+print("Internet Gaming Win:", internet)
+print("Sports Wagering:", sports)
+
+if slots + tables == casino:
+    print("Check passed: slots + tables = casino win")
+else:
+    print("CHECK FAILED: slots + tables does not equal casino win")
