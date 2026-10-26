@@ -1,8 +1,12 @@
+import csv
+import os
 import pdfplumber
 
 def first_number(text):
     pieces = text.replace("$", " ").split()
     number = pieces[0]
+    if number == "-":
+        return 0
     if "," not in number:
         number = number + pieces[1]
     return int(number.replace(",", ""))
@@ -15,25 +19,44 @@ def get_value(lines, label):
             return first_number(rest)
     return None
     
-filename = "data/raw/2017-01.pdf"
+rows = []
 
-with pdfplumber.open(filename) as pdf:
-    text = pdf.pages[1]. extract_text() or ""
-    lines = text.split("\n")
+for filename in sorted(os.listdir("data/raw")):
+    if not filename.endswith(".pdf"):
+        continue
 
-slots = get_value(lines, "Slot Machine Win")
-tables = get_value(lines, "Table Game Win")
-casino = get_value(lines, "Casino Win")
-internet = get_value(lines, "Internet Gaming Win")
-sports = get_value(lines, "Sports Wagering Revenue")
+    month = filename.replace(".pdf", "")
+    print("Reading", month)
 
-print("Slots:", slots)
-print("Tables:", tables)
-print("Casino Win:", casino)
-print("Internet Gaming Win:", internet)
-print("Sports Wagering:", sports)
+    with pdfplumber.open(f"data/raw/{filename}") as pdf:
+        text = pdf.pages[1].extract_text() or ""
+        lines = text.split("\n")
 
-if slots + tables == casino:
-    print("Check passed: slots + tables = casino win")
-else:
-    print("CHECK FAILED: slots + tables does not equal casino win")
+    slots = get_value(lines, "Slot Machine Win")
+    tables = get_value(lines, "Table Game Win")
+    casino = get_value(lines, "Casino Win")
+    internet = get_value(lines, "Internet Gaming Win")
+    sports = get_value(lines, "Sports Wagering Revenue")
+
+    if slots is None or tables is None or casino is None:
+        check = "MISSING"
+    elif slots < 0 or tables < 0 or casino < 0:
+        check = "NEGATIVE"
+    elif slots + tables == casino:
+        check = "OK"
+    else:
+        check = "FAILED"
+
+    rows.append([month, slots, tables, casino, internet, sports, check])
+
+with open("data/clean/gaming_revenue.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["month", "slots", "tables", "casino_win", "internet_win", "sports_win", "check"])
+    writer.writerows(rows)
+
+print("Wrote", len(rows), "months to data/clean/gaming_revenue.csv")
+
+print("Months that need a look:")
+for row in rows:
+    if row[6] != "OK":
+        print(row)
