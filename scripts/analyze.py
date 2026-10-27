@@ -28,3 +28,14 @@ plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig("charts/online_vs_floor.png", dpi=200)
 print("Saved chart")
+
+covid = df[df["year"] == "2020"]
+print(covid[["month", "casino_win", "internet_win"]])
+
+df["floor_won"] = df["casino_win"] > df["internet_win"]
+
+since_cross = df[df["month"] >= "2024-10"]
+print(since_cross[["month", "casino_win", "internet_win", "floor_won"]])
+
+wins = since_cross["floor_won"].sum()
+print("Floor won", wins, "of", len(since_cross), "months since October 2024")
