@@ -77,15 +77,6 @@ def read_new(pdf):
 
     return floor, online
                            
-
-month = "2025-01"
-
-with pdfplumber.open(f"data/raw/{month}.pdf") as pdf:
-    floor, online = read_new(pdf)
-
-for unit in units:
-    print(f"{unit:25} {floor[unit]:>12,} {online[unit]:>12,}")
-
 totals = pd.read_csv("data/clean/gaming_revenue.csv")
 
 rows = []
@@ -103,12 +94,11 @@ for filename in sorted(os.listdir("data/raw")):
             floor, online = read_new(pdf)
 
     row = totals[totals["month"] == month]
-    floor_ok = sum(floor.values()) == row["casino_win"].iloc[0]
-    online_ok = sum(online.values()) == row["internet_win"].iloc[0]
-    print(month, "floor:", floor_ok, "online:", online_ok)
+    floor_gap = sum(floor.values()) - row["casino_win"].iloc[0]
+    online_gap = sum(online.values()) - row["internet_win"].iloc[0]
 
-    if not floor_ok or not online_ok:
-        problems.append(month)
+    if floor_gap != 0 or online_gap != 0:
+        problems.append([month, floor_gap, online_gap])
 
     for unit in units:
         rows.append([month, unit, floor[unit], online[unit]])
@@ -119,4 +109,6 @@ with open("data/clean/casino_monthly.csv", "w", newline="") as f:
     writer.writerows(rows)
 
 print("Wrote", len(rows), "rows")
-print("Months with problems:", problems)
+
+for problem in problems:
+    print("PROBLEM:", problem)
